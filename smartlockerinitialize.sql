@@ -20,6 +20,8 @@ create table nfcopen(
     foreign key (uid) references nfcinfo(uid)
 );
 create table failopen(
-    failtime datetime
+    uid text,
+    failtime datetime DEFAULT (datetime('now', 'localtime')),
+    foid integer primary key autoincrement
 );
 

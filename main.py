@@ -31,8 +31,13 @@ def write_card():
 
     return
 
-def wrong_card():
-
+def wrong_card(uid):
+    conn = sqlite3.connect('smartlocker.db')
+    cursor = conn.cursor()
+    cursor.execute('insert into failopen(uid) values (?)', [str(uid[0]) + str(uid[1])])
+    cursor.close()
+    conn.commit()
+    conn.close()
     return
 
 # initialize PN532
@@ -90,5 +95,5 @@ while flag:
     else:
         print('\nfail authorisation\n')
         print("Waiting for RFID/NFC card...")
-        wrong_card()
+        wrong_card(uid)
         time.sleep(1)
