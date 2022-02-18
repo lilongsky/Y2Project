@@ -11,13 +11,20 @@ from adafruit_pn532.spi import PN532_SPI
 
 def read_card():
     print('\n')
-    uid = pn532.read_passive_target(timeout=0.5)
-    print('.', end="", flush=True)
+    print("Waiting for RFID/NFC card...")
+    flag = True
+    while flag:
+        uid = pn532.read_passive_target(timeout=0.5)
+        print('.', end="", flush=True)
+        if uid is None:
+            continue
+        else:
+            flag = False
     return uid
 
 
 def uid_check(uid):
-    uidstr = str(uid[0])+str(uid[1])
+    uidstr = str(uid[0]) + str(uid[1])
     conninuidc = sqlite3.connect('smartlocker.db')
     cursorinuidc = conninuidc.cursor()
     cursorinuidc.execute('select id from NFCInfo where uid =?', [uidstr])
@@ -28,6 +35,7 @@ def uid_check(uid):
     cursorinuidc.close()
     conninuidc.close()
     return flaguc
+
 
 def write_card():
     print('new person? input 1 \nold person input 2\n')
@@ -43,10 +51,16 @@ def write_card():
         email = input()
         print('read new card')
         uid = read_card()
-        cursor.execute('insert into ownerinfo(name,perferWay,email) values (?,?,?)', ([name],[perferWay],[email]))
-        cursor.execute('select id from NFCInfo where name =?',[name])
+        cursor.execute('insert into ownerinfo(name,perferWay,email) values (?,?,?)', ([name, int(perferWay), email]))
+        cursor.close()
+        conn.commit()
+        cursor = conn.cursor()
+        cursor.execute('select id from ownerinfo where name =?', [str(name)])
         id = cursor.fetchone()
-        cursor.execute('insert into nfcinfo(id,uid) values (?,?)',(id,uid))
+        cursor.execute('insert into nfcinfo(id,uid) values (?,?)', [id[0], str(uid[0]) + str(uid[1])])
+        cursor.close()
+        conn.commit()
+        cursor = conn.cursor()
     elif choose == '2':
         cursor.execute('select id,name from ownerinfo;')
         ownerinfo = cursor.fetchall()
@@ -58,7 +72,10 @@ def write_card():
         if cursor.fetchall() is not None:
             print('read new card')
             uid = read_card()
-            cursor.execute('insert into nfcinfo(id,uid) values (?,?)', (chooseid, uid))
+            cursor.execute('insert into nfcinfo(id,uid) values (?,?)', [chooseid, str(uid[0]) + str(uid[1])])
+            cursor.close()
+            conn.commit()
+            cursor = conn.cursor()
         else:
             print('wrong id!')
     else:
@@ -67,6 +84,7 @@ def write_card():
     conn.commit()
     conn.close()
     return
+
 
 def wrong_card(uid):
     conn = sqlite3.connect('smartlocker.db')
@@ -77,6 +95,7 @@ def wrong_card(uid):
     conn.close()
     return
 
+
 # initialize PN532
 spi = busio.SPI(board.SCK, board.MOSI, board.MISO)
 cs_pin = DigitalInOut(board.D5)
@@ -86,6 +105,7 @@ print("Found PN532 with firmware version: {0}.{1}".format(ver, rev))
 pn532.SAM_configuration()
 
 # temp UI
+# database
 print('creat database input \033[1;31m1\033[0m to initialize database\notherwise input \033[1;31m0\033[0m')
 choose = input()
 if choose == '1':
@@ -97,15 +117,16 @@ if choose == '1':
     conn.commit()
     conn.close()
     print('datebase build')
+
+# read card or write card
 print('read card function input \033[1;31m1\033[0m \nwrite card function input \033[1;31m2\033[0m')
 choose = '0'
 choose = input()
 if choose == '1':
+    flag = True
     while flag:
         flag = True
         uid = read_card()
-        if uid is None:
-            continue
         if uid_check(uid):
             print('\ndoor open')
             conn = sqlite3.connect('smartlocker.db')
@@ -117,24 +138,10 @@ if choose == '1':
             flag = False
         else:
             print('\nfail authorisation\n')
-            print("Waiting for RFID/NFC card...")
             wrong_card(uid)
             time.sleep(1)
-if choose == '2':
+elif choose == '2':
     write_card()
-else
+else:
     print('wrong Input')
 
-# test data
-print('create testdata input \033[1;31m1\033[0m to initialize database\notherwise input 0')
-choose = input()
-if choose == '1':
-    conn = sqlite3.connect('smartlocker.db')
-    f = open(r'testdata.sql')
-    cursor = conn.cursor()
-    cursor.executescript(f.read())
-    cursor.close()
-    conn.commit()
-    conn.close()
-flag = True
-print("Waiting for RFID/NFC card...")
