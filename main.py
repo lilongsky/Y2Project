@@ -127,15 +127,18 @@ if choose == '1':
     while flag:
         flag = True
         uid = read_card()
+        uidh = str(uid[0]) + str(uid[1])
         if uid_check(uid):
-            print('\ndoor open')
             conn = sqlite3.connect('smartlocker.db')
             cursor = conn.cursor()
-            cursor.execute('insert into nfcopen(uid) values (?)', [str(uid[0]) + str(uid[1])])
+            cursor.execute('insert into nfcopen(uid) values (?)', [uidh])
+            cursor.execute('select name from ownerinfo,nfcinfo where nfcinfo.uid = ? and nfcinfo.id=ownerinfo.id',[uidh])
+            name = cursor.fetchone()
             cursor.close()
             conn.commit()
             conn.close()
             flag = False
+            print('\ndoor open ' +'welcome ' +name[0])
         else:
             print('\nfail authorisation\n')
             wrong_card(uid)
