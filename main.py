@@ -8,6 +8,9 @@ import busio
 from digitalio import DigitalInOut
 from adafruit_pn532.spi import PN532_SPI
 
+# Servo
+import RPi.GPIO as GPIO
+
 
 def read_card():
     print('\n')
@@ -95,6 +98,18 @@ def wrong_card(uid):
     conn.close()
     return
 
+def open_door():
+    for i in range(0,5):
+        p.ChangeDutyCycle(10)
+        time.sleep(0.5)
+        i = i+1
+    return
+def close_door():
+    for i in range(0,5):
+        p.ChangeDutyCycle(5)
+        time.sleep(0.5)
+        i = i+1
+    return
 
 # initialize PN532
 spi = busio.SPI(board.SCK, board.MOSI, board.MISO)
@@ -103,6 +118,13 @@ pn532 = PN532_SPI(spi, cs_pin, debug=False)
 ic, ver, rev, support = pn532.firmware_version
 print("Found PN532 with firmware version: {0}.{1}".format(ver, rev))
 pn532.SAM_configuration()
+
+# initialize Servo
+servoPIN = 12
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(servoPIN, GPIO.OUT)
+p = GPIO.PWM(servoPIN, 50) # GPIO 17 for PWM with 50Hz
+p.start(2.5) # Initialization
 
 # temp UI
 # database

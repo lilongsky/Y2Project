@@ -1,20 +1,18 @@
-import board
-import busio
-from digitalio import DigitalInOut
-from adafruit_pn532.spi import PN532_SPI
-spi = busio.SPI(board.SCK, board.MOSI, board.MISO)
-cs_pin = DigitalInOut(board.D5)
-pn532 = PN532_SPI(spi,cs_pin,debug=False)
-ic, ver, rev, support = pn532.firmware_version
-print('Found PN532 with firmware version: {0}.{1}'.format(ver, rev))
-pn532.SAM_configuration()
-while True:
-    uid = pn532.read_passive_target(timeout=0.5)
-    print('.', end="", flush=True)
-    if uid is None:
-        continue
-    else:
-        print('Found card with UID:', [i for i in uid])
-        print((str(uid[0]) + str(uid[1])))
-        break
+import RPi.GPIO as GPIO
+import time
 
+servoPIN = 17
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(servoPIN, GPIO.OUT)
+
+p = GPIO.PWM(servoPIN, 50) # GPIO 17 for PWM with 50Hz
+p.start(2.5) # Initialization
+try:
+  while True:
+    p.ChangeDutyCycle(5)
+    time.sleep(0.5)
+    p.ChangeDutyCycle(10)
+    time.sleep(0.5)
+except KeyboardInterrupt:
+  p.stop()
+  GPIO.cleanup()
